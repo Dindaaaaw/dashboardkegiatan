@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -11,9 +12,9 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('.')); // Serve static files
+app.use(express.static('.')); 
 
-// Setup multer untuk upload (memory storage untuk Vercel)
+// Setup multer
 const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
@@ -21,7 +22,6 @@ const upload = multer({
         const allowedTypes = /jpeg|jpg|png|gif/;
         const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
         const mimetype = allowedTypes.test(file.mimetype);
-        
         if (mimetype && extname) {
             return cb(null, true);
         } else {
@@ -30,27 +30,21 @@ const upload = multer({
     }
 });
 
-// Route untuk halaman absen
-app.get('/absen', (req, res) => {
-    res.sendFile(path.join(__dirname, 'ddekk.html'));
-});
+// Route View
+app.get('/absen', (req, res) => { res.sendFile(path.join(__dirname, 'ddekk.html')); });
+app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'dashboard.html')); });
+app.get('/dashboard', (req, res) => { res.sendFile(path.join(__dirname, 'dashboard.html')); });
 
-// Route untuk halaman dashboard
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dashboard.html'));
-});
-
-app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dashboard.html'));
-});
-
-// Route untuk submit absensi
+// ==========================================
+// ROUTE SUBMIT (SUDAH DIEDIT)
+// ==========================================
 app.post('/submit-absensi', upload.single('foto'), async (req, res) => {
     try {
-        const { nama, area, jenis, waktuMulai, waktuSelesai, desc, timestamp } = req.body;
+        // Edit di sini: waktuMulai & waktuSelesai diganti rentangWaktu
+        const { nama, area, jenis, rentangWaktu, desc, timestamp } = req.body;
         
-        // Validasi data
-        if (!nama || !area || !jenis || !waktuMulai || !waktuSelesai || !desc) {
+        // Validasi data (disesuaikan dengan field baru)
+        if (!nama || !area || !jenis || !rentangWaktu || !desc) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'Semua field harus diisi!' 
@@ -64,13 +58,8 @@ app.post('/submit-absensi', upload.single('foto'), async (req, res) => {
             });
         }
 
-        // Upload foto ke Vercel Blob
-        // Bersihkan nama file: hapus spasi, karakter special, dan gunakan underscore
-        const cleanFilename = req.file.originalname
-            .replace(/\s+/g, '_')  // Ganti spasi dengan underscore
-            .replace(/[^a-zA-Z0-9._-]/g, '')  // Hapus karakter special
-            .toLowerCase();  // Lowercase semua
-        
+        // Upload ke Vercel Blob
+        const cleanFilename = req.file.originalname.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase();
         const filename = `foto_${Date.now()}_${cleanFilename}`;
         const blob = await put(filename, req.file.buffer, {
             access: 'public',
@@ -79,16 +68,14 @@ app.post('/submit-absensi', upload.single('foto'), async (req, res) => {
             addRandomSuffix: false
         });
 
-        // Simpan data ke MongoDB
+        // Simpan ke MongoDB
         const collection = await getCollection('absensi');
-        
         const dataAbsensi = {
             timestamp: timestamp ? new Date(timestamp) : new Date(),
             nama,
             area,
             jenis,
-            waktuMulai,
-            waktuSelesai,
+            rentangWaktu, // Field baru
             deskripsi: desc,
             foto: blob.url,
             createdAt: new Date()
@@ -99,182 +86,84 @@ app.post('/submit-absensi', upload.single('foto'), async (req, res) => {
         res.json({ 
             success: true, 
             message: 'Data absensi berhasil disimpan!',
-            data: {
-                id: result.insertedId,
-                ...dataAbsensi
-            }
+            data: { id: result.insertedId, ...dataAbsensi }
         });
 
     } catch (error) {
         console.error('Error detail:', error);
-        
-        let errorMessage = 'Terjadi kesalahan saat menyimpan data!';
-        
-        if (error.message.includes('MONGODB_URI')) {
-            errorMessage = 'Database tidak terhubung. Periksa MONGODB_URI di environment variables.';
-        } else if (error.message.includes('BLOB')) {
-            errorMessage = 'Gagal upload foto. Periksa BLOB_READ_WRITE_TOKEN di environment variables.';
-        } else if (error.message.includes('MongoServerError')) {
-            errorMessage = 'Koneksi ke MongoDB gagal. Periksa password dan IP whitelist.';
-        }
-        
-        res.status(500).json({ 
-            success: false, 
-            message: errorMessage,
-            error: error.message,
-            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        });
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 
-// API untuk mendapatkan semua data absensi
+// API Get Data
 app.get('/api/absensi', async (req, res) => {
     try {
         const collection = await getCollection('absensi');
-        
-        const allAbsensi = await collection
-            .find({})
-            .sort({ timestamp: -1 })
-            .toArray();
-
-        // Format data untuk response
+        const allAbsensi = await collection.find({}).sort({ timestamp: -1 }).toArray();
         const formattedData = allAbsensi.map(item => ({
             id: item._id,
             timestamp: item.timestamp,
             nama: item.nama,
             area: item.area,
             jenis: item.jenis,
-            waktuMulai: item.waktuMulai,
-            waktuSelesai: item.waktuSelesai,
+            rentangWaktu: item.rentangWaktu, // Update field
             deskripsi: item.deskripsi,
             foto: item.foto
         }));
-
-        res.json({ 
-            success: true, 
-            data: formattedData 
-        });
-
+        res.json({ success: true, data: formattedData });
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Terjadi kesalahan saat mengambil data!',
-            error: error.message 
-        });
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 
-// API untuk export ke Excel
+// API Export Excel (SUDAH DIEDIT)
 app.get('/api/export-excel', async (req, res) => {
     try {
         const collection = await getCollection('absensi');
+        const allAbsensi = await collection.find({}).sort({ timestamp: -1 }).toArray();
         
-        const allAbsensi = await collection
-            .find({})
-            .sort({ timestamp: -1 })
-            .toArray();
-        
-        if (allAbsensi.length === 0) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Tidak ada data untuk di-export' 
-            });
-        }
+        if (allAbsensi.length === 0) return res.status(404).json({ success: false, message: 'Data kosong' });
 
-        // Prepare data for Excel
         const excelData = allAbsensi.map((item, index) => {
             const date = new Date(item.timestamp);
             return {
                 'No': index + 1,
-                'Tanggal': date.toLocaleDateString('id-ID', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric'
-                }),
-                'Waktu': date.toLocaleTimeString('id-ID', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                }),
+                'Tanggal': date.toLocaleDateString('id-ID'),
                 'Nama': item.nama,
                 'Area': item.area,
                 'Jenis Pekerjaan': item.jenis,
-                'Waktu Mulai': item.waktuMulai,
-                'Waktu Selesai': item.waktuSelesai,
+                'Rentang Waktu': item.rentangWaktu, // Kolom disatukan biar rapi
                 'Deskripsi': item.deskripsi,
                 'URL Foto': item.foto
             };
         });
 
-        // Create workbook and worksheet
         const workbook = xlsx.utils.book_new();
         const worksheet = xlsx.utils.json_to_sheet(excelData);
-
-        // Set column widths
-        worksheet['!cols'] = [
-            { wch: 5 },  // No
-            { wch: 20 }, // Tanggal
-            { wch: 12 }, // Waktu
-            { wch: 30 }, // Nama
-            { wch: 15 }, // Area
-            { wch: 18 }, // Jenis Pekerjaan
-            { wch: 12 }, // Waktu Mulai
-            { wch: 12 }, // Waktu Selesai
-            { wch: 40 }, // Deskripsi
-            { wch: 60 }  // URL Foto
-        ];
-
         xlsx.utils.book_append_sheet(workbook, worksheet, 'Data Absensi');
-
-        // Generate Excel file
         const excelBuffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
-        // Set headers for file download
-        const fileName = `Absensi_${new Date().toISOString().split('T')[0]}.xlsx`;
-        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.setHeader('Content-Disposition', `attachment; filename="Absensi.xlsx"`);
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        
         res.send(excelBuffer);
-
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Terjadi kesalahan saat export data!',
-            error: error.message 
-        });
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 
-// Health check endpoint
+// Health Check
 app.get('/api/health', async (req, res) => {
     try {
         const collection = await getCollection('absensi');
-        await collection.findOne({}); // Test connection
-        
-        res.json({ 
-            success: true, 
-            message: 'Server and database are running',
-            timestamp: new Date().toISOString()
-        });
+        await collection.findOne({});
+        res.json({ success: true, message: 'Running' });
     } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            message: 'Database connection error',
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Start server (untuk development local)
 if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => {
-        console.log(`Server berjalan di http://localhost:${PORT}`);
-        console.log(`Buka http://localhost:${PORT} untuk dashboard`);
-        console.log(`Buka http://localhost:${PORT}/absen untuk input absensi`);
-    });
+    app.listen(PORT, () => { console.log(`Running on http://localhost:${PORT}`); });
 }
 
-// Export untuk Vercel
 module.exports = app;
