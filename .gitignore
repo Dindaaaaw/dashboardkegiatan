@@ -1,0 +1,6 @@
+node_modules
+absensi
+.git
+.env
+.env.local
+.vercel
