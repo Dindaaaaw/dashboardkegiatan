@@ -53,10 +53,10 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 Dashboard Absensi</h1>
+            <h1>📊 Dashboard Kegiatan Pegawai</h1>
             <div class="header-actions">
                 <a href="/absen" class="btn btn-primary">
-                    <span>➕</span> Input Absensi
+                    <span>➕</span> Input Kegiatan
                 </a>
                 <button onclick="exportToExcel()" class="btn btn-success">
                     <span>📥</span> Export Excel
@@ -81,7 +81,7 @@
 
         <div class="table-container">
             <div class="table-header">
-                <h2>Data Absensi Pegawai</h2>
+                <h2>Data Kegiatan Pegawai</h2>
                 <div class="search-box">
                     <input type="text" id="searchInput" placeholder="🔍 Cari berdasarkan nama, area, atau jenis...">
                 </div>
@@ -175,8 +175,14 @@
                             const date = new Date(item.timestamp);
                             const formattedDate = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
                             const formattedTime = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-                            const badgeClass = item.jenis === 'Maintenance' ? 'badge-maintenance' : 
-                                               item.jenis === 'Instalasi' ? 'badge-inspeksi' : 'badge-lainnya';
+                            
+                            // Tentukan badge class berdasarkan jenis pekerjaan
+                            let badgeClass = 'badge-lainnya';
+                            if (item.jenis.includes('Pekerjaan Rutin')) {
+                                badgeClass = 'badge-maintenance';
+                            } else if (item.jenis.includes('Pekerjaan Tambahan')) {
+                                badgeClass = 'badge-inspeksi';
+                            }
 
                             return `
                                 <tr>

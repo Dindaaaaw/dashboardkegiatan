@@ -9,6 +9,18 @@ const { getCollection } = require('./lib/mongodb');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// List of Employee Names
+const employeeNames = [
+    'Andri Apriansyah',
+    'Uli Hariyono',
+    'Muhammad Redo Firdaus',
+    'Ansori',
+    'Andita',
+    'Dwi Anugrah Sefrina Handayani',
+    'Sefian Hadi',
+    'Sobirin'
+];
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -35,6 +47,11 @@ app.get('/absen', (req, res) => { res.sendFile(path.join(__dirname, 'ddekk.html'
 app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'dashboard.html')); });
 app.get('/dashboard', (req, res) => { res.sendFile(path.join(__dirname, 'dashboard.html')); });
 
+// API Get Employee Names
+app.get('/api/employees', (req, res) => {
+    res.json({ success: true, data: employeeNames });
+});
+
 // ==========================================
 // ROUTE SUBMIT (SUDAH DIEDIT)
 // ==========================================
@@ -42,9 +59,20 @@ app.post('/submit-absensi', upload.single('foto'), async (req, res) => {
     try {
         // Edit di sini: waktuMulai & waktuSelesai diganti rentangWaktu
         const { nama, area, jenis, rentangWaktu, desc, timestamp } = req.body;
-        
+
+        // Normalize area: could be string or array depending on client
+        let areaValue = area;
+        if (Array.isArray(area)) {
+            areaValue = area.join(', ');
+        } else if (typeof area === 'string') {
+            areaValue = area.trim();
+        }
+
+        // Validasi nama (harus dari daftar atau kosong untuk backward compatibility)
+        const namaValue = nama ? nama.trim() : '';
+
         // Validasi data (disesuaikan dengan field baru)
-        if (!nama || !area || !jenis || !rentangWaktu || !desc) {
+        if (!namaValue || !areaValue || !jenis || !rentangWaktu || !desc) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'Semua field harus diisi!' 
@@ -72,8 +100,8 @@ app.post('/submit-absensi', upload.single('foto'), async (req, res) => {
         const collection = await getCollection('absensi');
         const dataAbsensi = {
             timestamp: timestamp ? new Date(timestamp) : new Date(),
-            nama,
-            area,
+            nama: namaValue,
+            area: areaValue,
             jenis,
             rentangWaktu, // Field baru
             deskripsi: desc,

@@ -63,7 +63,29 @@
             background: #f1f5f9;
             color: #1e3a8a;
         }
-        
+
+        /* ===== ERROR MESSAGE ===== */
+        .error-message {
+            color: #dc2626;
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+        .error-message.show {
+            display: flex;
+        }
+        .error-message::before {
+            content: "ⓘ";
+            font-weight: bold;
+        }
+
+        select.error {
+            border-color: #dc2626;
+            background: #fef2f2;
+        }
+
         textarea {
             min-height: 100px;
             resize: vertical;
@@ -150,24 +172,32 @@
 
     <div class="form-grid">
         <div>
-            <label>Nama Pegawai</label>
-            <input id="nama" type="text" placeholder="Nama Pegawai">
+            <label>Nama Pegawai <span style="color:red;">*</span></label>
+            <select id="nama" required>
+                <option value="">Pilih</option>
+            </select>
+            <small id="namaError" style="color: #dc2626; display: none;">Pertanyaan ini wajib diisi</small>
         </div>
         <div>
-            <label>Area Pekerjaan</label>
-            <input id="area" type="text" placeholder="Lokasi / Area">
+            <label>Area Pekerjaan <span style="color:red;">*</span></label>
+            <div class="radio-group" id="areaGroup" style="max-height: 220px; overflow:auto;">
+                <label class="radio-item"><input type="checkbox" name="area" value="Ruangan (Lantai, meja, kursi, kaca jendela, kaca pintu, sice, tempat sampah)"> Ruangan ( Lantai, meja, kursi, kaca jendela, kaca pintu, sice, tempat sampah)</label>
+                <label class="radio-item"><input type="checkbox" name="area" value="Toilet (Lantai, dinding, pintu, cermin, kloset, westafel, ember, tempat sampah, tissue)"> Toilet ( Lantai, dinding, pintu, cermin, kloset, westafel, ember, tempat sampah, tissue)</label>
+                <label class="radio-item"><input type="checkbox" name="area" value="Lobby (Koridor depan ruangan dan tangga)"> Lobby (Koridor depan ruangan dan tangga)</label>
+                <label class="radio-item"><input type="checkbox" name="area" value="Area Luar Gedung (Halaman depan, halaman tengah, halaman belakang, parkir kendaraan, kandang burung, taman depan, taman samping, parit depan, parit masjid, parit belakang, tempat sampah depan, tempat sampah belakang)"> Area Luar Gedung ( Halaman depan, halaman tengah, halaman belakang, parkir kendaraan, kandang burung, taman depan, taman samping, parit depan, parit masjid, parit belakang, tempat sampah depan, tempat sampah belakang)</label>
+                <label class="radio-item" style="align-items:flex-start;"><input type="checkbox" id="area_other_chk"> Yang lain: <input id="area_other_text" type="text" placeholder="Tuliskan area lain" style="flex:1; margin-left:8px; padding:8px; border-radius:6px; border:1px solid #cbd5e1; background:#f1f5f9; color:#1e3a8a;" disabled></label>
+            </div>
         </div>
     </div>
 
     <div class="form-grid">
         <div>
-            <label>Jenis Pekerjaan</label>
-            <select id="jenis">
-                <option disabled selected>Pilih Jenis</option>
-                <option>Maintenance</option>
-                <option>Instalasi</option>
-                <option>Perbaikan</option>
-            </select>
+            <label>Jenis Pekerjaan <span style="color:red;">*</span></label>
+            <div class="radio-group" id="jenisGroup">
+                <label class="radio-item"><input type="checkbox" name="jenis" value="Pekerjaan Rutin"> Pekerjaan Rutin</label>
+                <label class="radio-item"><input type="checkbox" name="jenis" value="Pekerjaan Tambahan"> Pekerjaan Tambahan</label>
+                <label class="radio-item" style="align-items:flex-start;"><input type="checkbox" id="jenis_other_chk"> Yang lain: <input id="jenis_other_text" type="text" placeholder="Tuliskan jenis pekerjaan lain" style="flex:1; margin-left:8px; padding:8px; border-radius:6px; border:1px solid #cbd5e1; background:#f1f5f9; color:#1e3a8a;" disabled></label>
+            </div>
         </div>
         <div>
             <label>Rentang Waktu Pekerjaan <span style="color:red;">*</span></label>
@@ -206,6 +236,28 @@
 </div>
 
 <script>
+    // ===== LOAD EMPLOYEE NAMES =====
+    async function loadEmployeeNames() {
+        try {
+            const response = await fetch('/api/employees');
+            const result = await response.json();
+            if (result.success && result.data) {
+                const namaSelect = document.getElementById('nama');
+                result.data.forEach(employee => {
+                    const option = document.createElement('option');
+                    option.value = employee;
+                    option.textContent = employee;
+                    namaSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading employee names:', error);
+        }
+    }
+
+    // Load employees on page load
+    loadEmployeeNames();
+
     // ===== TIMESTAMP OTOMATIS =====
     const timestampEl = document.getElementById("timestamp");
     function updateTimestamp() {
@@ -236,27 +288,67 @@
         }
     });
 
+    // Toggle 'other' area text input when its checkbox is checked
+    const areaOtherChk = document.getElementById('area_other_chk');
+    const areaOtherText = document.getElementById('area_other_text');
+    if (areaOtherChk && areaOtherText) {
+        areaOtherChk.addEventListener('change', (e) => {
+            areaOtherText.disabled = !e.target.checked;
+            if (!e.target.checked) areaOtherText.value = '';
+        });
+    }
+
+    // Toggle 'other' jenis text input when its checkbox is checked
+    const jenisOtherChk = document.getElementById('jenis_other_chk');
+    const jenisOtherText = document.getElementById('jenis_other_text');
+    if (jenisOtherChk && jenisOtherText) {
+        jenisOtherChk.addEventListener('change', (e) => {
+            jenisOtherText.disabled = !e.target.checked;
+            if (!e.target.checked) jenisOtherText.value = '';
+        });
+    }
     // ===== KIRIM DATA =====
     async function kirim() {
-        const nama = document.getElementById("nama").value;
-        const area = document.getElementById("area").value;
-        const jenis = document.getElementById("jenis").value;
-        const desc = document.getElementById("desc").value;
+        const nama = document.getElementById("nama").value.trim();
+        const namaSelect = document.getElementById("nama");
+        const namaError = document.getElementById("namaError");
+        const desc = document.getElementById("desc").value.trim();
         const foto = document.getElementById("foto").files[0];
-        
+
+        // Validasi nama
+        if (!nama) {
+            namaSelect.classList.add('error');
+            namaError.style.display = 'block';
+        } else {
+            namaSelect.classList.remove('error');
+            namaError.style.display = 'none';
+        }
+
+        // Ambil nilai area yang dicentang
+        const selectedAreas = Array.from(document.querySelectorAll('input[name="area"]:checked')).map(i => i.value.trim());
+        if (areaOtherChk && areaOtherChk.checked && areaOtherText && areaOtherText.value.trim()) {
+            selectedAreas.push(areaOtherText.value.trim());
+        }
+
+        // Ambil nilai jenis yang dicentang
+        const selectedJenis = Array.from(document.querySelectorAll('input[name="jenis"]:checked')).map(i => i.value.trim());
+        if (jenisOtherChk && jenisOtherChk.checked && jenisOtherText && jenisOtherText.value.trim()) {
+            selectedJenis.push(jenisOtherText.value.trim());
+        }
+
         // Mengambil nilai radio button yang dipilih
         const rentangTerpilih = document.querySelector('input[name="rentang"]:checked');
 
-        if(!nama || !area || !jenis || !rentangTerpilih || !desc || !foto){
-            alert("Semua field harus diisi termasuk rentang waktu dan foto!");
+        if (!nama || selectedAreas.length === 0 || selectedJenis.length === 0 || !rentangTerpilih || !desc || !foto) {
+            alert("Semua field harus diisi termasuk memilih Nama Pegawai, Area, Jenis Pekerjaan, rentang waktu, dan foto!");
             return;
         }
 
         const formData = new FormData();
         formData.append("timestamp", new Date().toISOString());
         formData.append("nama", nama);
-        formData.append("area", area);
-        formData.append("jenis", jenis);
+        formData.append("area", selectedAreas.join(', '));
+        formData.append("jenis", selectedJenis.join(', '));
         formData.append("rentangWaktu", rentangTerpilih.value);
         formData.append("desc", desc);
         formData.append("foto", foto);
@@ -268,9 +360,9 @@
             });
 
             const result = await response.json();
-            
-            if(result.success) {
-                alert("Data berhasil disimpan!\nRentang: " + rentangTerpilih.value);
+
+            if (result.success) {
+                alert("Data berhasil disimpan!\nNama: " + nama + "\nJenis: " + selectedJenis.join(', ') + "\nRentang: " + rentangTerpilih.value);
                 location.reload(); // Refresh halaman setelah sukses
             } else {
                 alert("Gagal: " + result.message);
