@@ -184,6 +184,32 @@ app.get('/api/export-excel', async (req, res) => {
     }
 });
 
+// API Delete Data
+app.delete('/api/absensi/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Validasi ID format
+        if (!id || id.length !== 24) {
+            return res.status(400).json({ success: false, message: 'ID tidak valid' });
+        }
+
+        const collection = await getCollection('absensi');
+        const { ObjectId } = require('mongodb');
+        
+        const result = await collection.deleteOne({ _id: new ObjectId(id) });
+        
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+        }
+        
+        res.json({ success: true, message: 'Data berhasil dihapus' });
+    } catch (error) {
+        console.error('Error detail:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // Health Check
 app.get('/api/health', async (req, res) => {
     try {

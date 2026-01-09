@@ -48,6 +48,8 @@
         .pagination button:hover:not(:disabled) { background: #667eea; color: white; }
         .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
         .pagination button.active { background: #667eea; color: white; }
+        .btn-delete { padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.3s; }
+        .btn-delete:hover { background: #dc2626; transform: scale(1.05); }
     </style>
 </head>
 <body>
@@ -169,6 +171,7 @@
                             <th>Rentang Waktu Kerja</th>
                             <th>Deskripsi</th>
                             <th>Foto</th>
+                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -200,6 +203,9 @@
                                     <td>${item.deskripsi}</td>
                                     <td>
                                         <img src="${item.foto}" class="foto-thumbnail" onclick="showImage('${item.foto}')">
+                                    </td>
+                                    <td>
+                                        <button class="btn-delete" onclick="deleteData('${item.id}', ${startIndex + index + 1})">Hapus</button>
                                     </td>
                                 </tr>
                             `;
@@ -272,6 +278,29 @@
                 document.body.removeChild(a);
             } catch (error) {
                 alert('Gagal export ke Excel');
+            }
+        }
+
+        async function deleteData(id, rowNumber) {
+            const confirmed = confirm(`Apakah Anda yakin ingin menghapus data nomor ${rowNumber}?`);
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch(`/api/absensi/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Data berhasil dihapus');
+                    loadData(); // Reload data
+                } else {
+                    alert('Gagal menghapus data: ' + result.message);
+                }
+            } catch (error) {
+                alert('Terjadi kesalahan saat menghapus data');
+                console.error(error);
             }
         }
 
