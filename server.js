@@ -58,7 +58,7 @@ app.get('/api/employees', (req, res) => {
 app.post('/submit-absensi', upload.single('foto'), async (req, res) => {
     try {
         // Edit di sini: waktuMulai & waktuSelesai diganti rentangWaktu
-        const { nama, area, jenis, rentangWaktu, desc, timestamp } = req.body;
+        const { nama, area, jenis, rentangWaktu, desc, timestamp, consent } = req.body;
 
         // Normalize area: could be string or array depending on client
         let areaValue = area;
@@ -70,12 +70,14 @@ app.post('/submit-absensi', upload.single('foto'), async (req, res) => {
 
         // Validasi nama (harus dari daftar atau kosong untuk backward compatibility)
         const namaValue = nama ? nama.trim() : '';
+        // Normalize consent value from client (may be 'true'/'false' or boolean)
+        const consentValue = consent === 'true' || consent === true;
 
         // Validasi data (disesuaikan dengan field baru)
-        if (!namaValue || !areaValue || !jenis || !rentangWaktu || !desc) {
+        if (!namaValue || !areaValue || !jenis || !rentangWaktu || !desc || !consentValue) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Semua field harus diisi!' 
+                message: 'Semua field harus diisi dan persetujuan harus dicentang!' 
             });
         }
 
@@ -106,6 +108,7 @@ app.post('/submit-absensi', upload.single('foto'), async (req, res) => {
             rentangWaktu, // Field baru
             deskripsi: desc,
             foto: blob.url,
+            consent: consentValue,
             createdAt: new Date()
         };
 
@@ -136,7 +139,8 @@ app.get('/api/absensi', async (req, res) => {
             jenis: item.jenis,
             rentangWaktu: item.rentangWaktu, // Update field
             deskripsi: item.deskripsi,
-            foto: item.foto
+            foto: item.foto,
+            consent: !!item.consent
         }));
         res.json({ success: true, data: formattedData });
     } catch (error) {
@@ -162,6 +166,7 @@ app.get('/api/export-excel', async (req, res) => {
                 'Jenis Pekerjaan': item.jenis,
                 'Rentang Waktu': item.rentangWaktu, // Kolom disatukan biar rapi
                 'Deskripsi': item.deskripsi,
+                'Consent': item.consent ? 'Ya' : 'Tidak',
                 'URL Foto': item.foto
             };
         });

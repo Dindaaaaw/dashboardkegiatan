@@ -165,6 +165,7 @@
                             <th>Nama</th>
                             <th>Area</th>
                             <th>Jenis</th>
+                            <th>Persetujuan</th>
                             <th>Rentang Waktu Kerja</th>
                             <th>Deskripsi</th>
                             <th>Foto</th>
@@ -194,6 +195,7 @@
                                     <td><strong>${item.nama}</strong></td>
                                     <td>${item.area}</td>
                                     <td><span class="badge ${badgeClass}">${item.jenis}</span></td>
+                                    <td style="text-align:center; font-weight:600;">${item.consent ? '✔️' : '❌'}</td>
                                     <td style="font-weight: 600; color: #1e40af;">${item.rentangWaktu || '-'}</td>
                                     <td>${item.deskripsi}</td>
                                     <td>

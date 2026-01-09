@@ -91,6 +91,20 @@
             resize: vertical;
         }
 
+        /* ===== CONSENT CARD ===== */
+        .consent-card {
+            background: #ffffff;
+            border: 1px solid #e6e6e6;
+            padding: 18px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+        .consent-text {
+            color: #1f2937;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
         /* ===== RADIO SECTION ===== */
         .radio-group {
             background: #f1f5f9;
@@ -232,6 +246,14 @@
         </div>
     </div>
 
+    <div class="form-grid full-width">
+        <div class="consent-card">
+            <p class="consent-text">Dengan ini saya menyatakan bahwa jawaban yang saya berikan sesuai dengan kondisi sebenarnya, serta saya siap bertanggung jawab penuh atas jawaban tersebut. <span style="color:red;">*</span></p>
+            <label class="radio-item"><input type="checkbox" id="consent_chk"> Centang Disini</label>
+            <small id="consentError" style="color: #dc2626; display: none;">Anda harus menyetujui pernyataan ini</small>
+        </div>
+    </div>
+
     <button onclick="kirim()">Kirim Data</button>
 </div>
 
@@ -314,6 +336,8 @@
         const namaError = document.getElementById("namaError");
         const desc = document.getElementById("desc").value.trim();
         const foto = document.getElementById("foto").files[0];
+        const consentChk = document.getElementById('consent_chk');
+        const consentError = document.getElementById('consentError');
 
         // Validasi nama
         if (!nama) {
@@ -339,8 +363,15 @@
         // Mengambil nilai radio button yang dipilih
         const rentangTerpilih = document.querySelector('input[name="rentang"]:checked');
 
-        if (!nama || selectedAreas.length === 0 || selectedJenis.length === 0 || !rentangTerpilih || !desc || !foto) {
-            alert("Semua field harus diisi termasuk memilih Nama Pegawai, Area, Jenis Pekerjaan, rentang waktu, dan foto!");
+        // Validasi consent
+        if (!consentChk || !consentChk.checked) {
+            if (consentError) consentError.style.display = 'block';
+        } else {
+            if (consentError) consentError.style.display = 'none';
+        }
+
+        if (!nama || selectedAreas.length === 0 || selectedJenis.length === 0 || !rentangTerpilih || !desc || !foto || !consentChk || !consentChk.checked) {
+            alert("Semua field harus diisi termasuk memilih Nama Pegawai, Area, Jenis Pekerjaan, rentang waktu, foto, dan persetujuan!");
             return;
         }
 
@@ -352,6 +383,7 @@
         formData.append("rentangWaktu", rentangTerpilih.value);
         formData.append("desc", desc);
         formData.append("foto", foto);
+        formData.append("consent", consentChk.checked ? 'true' : 'false');
 
         try {
             const response = await fetch("/submit-absensi", {
