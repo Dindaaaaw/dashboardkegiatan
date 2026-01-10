@@ -184,7 +184,7 @@ app.get('/api/export-excel', async (req, res) => {
     }
 });
 
-// API Delete Data
+// API Delete Data (Single)
 app.delete('/api/absensi/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -204,6 +204,41 @@ app.delete('/api/absensi/:id', async (req, res) => {
         }
         
         res.json({ success: true, message: 'Data berhasil dihapus' });
+    } catch (error) {
+        console.error('Error detail:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// API Delete Multiple Data
+app.post('/api/absensi/delete-multiple', async (req, res) => {
+    try {
+        const { ids } = req.body;
+        
+        // Validasi input
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ success: false, message: 'IDs harus berupa array dan tidak boleh kosong' });
+        }
+
+        const collection = await getCollection('absensi');
+        const { ObjectId } = require('mongodb');
+        
+        // Validasi semua ID
+        const validIds = ids.filter(id => id && id.length === 24);
+        if (validIds.length === 0) {
+            return res.status(400).json({ success: false, message: 'Tidak ada ID yang valid' });
+        }
+
+        // Convert string IDs to ObjectId
+        const objectIds = validIds.map(id => new ObjectId(id));
+        
+        const result = await collection.deleteMany({ _id: { $in: objectIds } });
+        
+        res.json({ 
+            success: true, 
+            message: `${result.deletedCount} data berhasil dihapus`,
+            deletedCount: result.deletedCount
+        });
     } catch (error) {
         console.error('Error detail:', error);
         res.status(500).json({ success: false, message: error.message });

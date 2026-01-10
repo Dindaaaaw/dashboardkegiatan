@@ -10,6 +10,7 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
         .container { max-width: 1400px; margin: 0 auto; }
         .header { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo { width: 64px; height: 64px; object-fit: contain; border-radius: 8px; }
         h1 { color: #667eea; font-size: 28px; }
         .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
         .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
@@ -50,12 +51,174 @@
         .pagination button.active { background: #667eea; color: white; }
         .btn-delete { padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.3s; }
         .btn-delete:hover { background: #dc2626; transform: scale(1.05); }
+        .checkbox-col { width: 50px; text-align: center; }
+        input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        .delete-selected-container { padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #f0f0f0; background: #f8f9fa; border-radius: 0 0 15px 15px; }
+        .delete-selected-container.hidden { display: none; }
+        .btn-delete-multiple { padding: 12px 24px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; }
+        .btn-delete-multiple:hover { background: #dc2626; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4); }
+        .btn-delete-multiple:disabled { opacity: 0.5; cursor: not-allowed; }
+        /* ===== MODAL ALERT ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .modal-icon {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .modal-icon.success { color: #10b981; }
+        .modal-icon.error { color: #ef4444; }
+        .modal-icon.warning { color: #f59e0b; }
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .modal-message {
+            font-size: 15px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .modal-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .modal-btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .modal-btn-primary:hover {
+            background: #5568d3;
+        }
+        .modal-btn-secondary {
+            background: #e2e8f0;
+            color: #666;
+        }
+        .modal-btn-secondary:hover {
+            background: #cbd5e1;
+        }
+        /* ===== CONFIRM MODAL ===== */
+        .confirm-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            align-items: center;
+            justify-content: center;
+        }
+        .confirm-modal-overlay.active {
+            display: flex;
+        }
+        .confirm-modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease-out;
+        }
+        .confirm-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .confirm-modal-message {
+            font-size: 15px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+        .confirm-modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .confirm-btn {
+            padding: 10px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .confirm-btn-confirm {
+            background: #ef4444;
+            color: white;
+        }
+        .confirm-btn-confirm:hover {
+            background: #dc2626;
+        }
+        .confirm-btn-cancel {
+            background: #e2e8f0;
+            color: #666;
+        }
+        .confirm-btn-cancel:hover {
+            background: #cbd5e1;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 Dashboard Kegiatan Pegawai</h1>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <img src="logo.png" alt="Logo" class="logo">
+                <h1>Dashboard Kegiatan Pegawai</h1>
+            </div>
             <div class="header-actions">
                 <a href="/absen" class="btn btn-primary">
                     <span>➕</span> Input Kegiatan
@@ -93,6 +256,11 @@
                 <div class="loading">Memuat data...</div>
             </div>
 
+            <div class="delete-selected-container hidden" id="deleteSelectedContainer">
+                <span id="selectedCount">0 item terpilih</span>
+                <button class="btn-delete-multiple" onclick="deleteSelectedData()">🗑️ Hapus Terpilih</button>
+            </div>
+
             <div class="pagination" id="pagination"></div>
         </div>
     </div>
@@ -101,11 +269,108 @@
         <img src="" alt="Preview" id="modalImage">
     </div>
 
+    <!-- Alert Modal -->
+    <div class="modal-overlay" id="alertModalOverlay">
+        <div class="modal-content">
+            <div class="modal-icon" id="alertModalIcon"></div>
+            <div class="modal-title" id="alertModalTitle">Notifikasi</div>
+            <div class="modal-message" id="alertModalMessage"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" onclick="closeAlertModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="confirm-modal-overlay" id="confirmModalOverlay">
+        <div class="confirm-modal-content">
+            <div class="confirm-modal-title" id="confirmModalTitle">Konfirmasi</div>
+            <div class="confirm-modal-message" id="confirmModalMessage"></div>
+            <div class="confirm-modal-buttons">
+                <button class="confirm-btn confirm-btn-cancel" onclick="closeConfirmModal(false)">Batal</button>
+                <button class="confirm-btn confirm-btn-confirm" onclick="closeConfirmModal(true)">Hapus</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // ===== MODAL ALERT FUNCTIONS =====
+        function showAlertModal(message, type = 'info', title = 'Notifikasi') {
+            const modalOverlay = document.getElementById('alertModalOverlay');
+            const modalTitle = document.getElementById('alertModalTitle');
+            const modalMessage = document.getElementById('alertModalMessage');
+            const modalIcon = document.getElementById('alertModalIcon');
+
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            
+            switch(type) {
+                case 'success':
+                    modalIcon.textContent = '✓';
+                    modalIcon.className = 'modal-icon success';
+                    break;
+                case 'error':
+                    modalIcon.textContent = '✕';
+                    modalIcon.className = 'modal-icon error';
+                    break;
+                case 'warning':
+                    modalIcon.textContent = '!';
+                    modalIcon.className = 'modal-icon warning';
+                    break;
+                default:
+                    modalIcon.textContent = 'ⓘ';
+                    modalIcon.className = 'modal-icon';
+            }
+            
+            modalOverlay.classList.add('active');
+        }
+
+        function closeAlertModal() {
+            const modalOverlay = document.getElementById('alertModalOverlay');
+            modalOverlay.classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('alertModalOverlay')?.addEventListener('click', (e) => {
+            if (e.target.id === 'alertModalOverlay') closeAlertModal();
+        });
+
+        // ===== CONFIRM MODAL FUNCTIONS =====
+        let confirmCallback = null;
+        
+        function showConfirmModal(message, title = 'Konfirmasi') {
+            return new Promise((resolve) => {
+                const modalOverlay = document.getElementById('confirmModalOverlay');
+                const modalTitle = document.getElementById('confirmModalTitle');
+                const modalMessage = document.getElementById('confirmModalMessage');
+                
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                confirmCallback = resolve;
+                
+                modalOverlay.classList.add('active');
+            });
+        }
+
+        function closeConfirmModal(result) {
+            const modalOverlay = document.getElementById('confirmModalOverlay');
+            modalOverlay.classList.remove('active');
+            if (confirmCallback) {
+                confirmCallback(result);
+                confirmCallback = null;
+            }
+        }
+
+        // Close confirm modal when clicking outside
+        document.getElementById('confirmModalOverlay')?.addEventListener('click', (e) => {
+            if (e.target.id === 'confirmModalOverlay') closeConfirmModal(false);
+        });
+
         let allData = [];
         let filteredData = [];
         let currentPage = 1;
         const itemsPerPage = 10;
+        let selectedIds = new Set();
 
         async function loadData() {
             try {
@@ -162,6 +427,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th class="checkbox-col"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)"></th>
                             <th>No</th>
                             <th>Tanggal & Waktu</th>
                             <th>Nama</th>
@@ -190,6 +456,7 @@
 
                             return `
                                 <tr>
+                                    <td class="checkbox-col"><input type="checkbox" value="${item.id}" onchange="toggleSelect('${item.id}')"></td>
                                     <td>${startIndex + index + 1}</td>
                                     <td>
                                         <div>${formattedDate}</div>
@@ -262,8 +529,85 @@
                        (item.rentangWaktu && item.rentangWaktu.toLowerCase().includes(searchTerm));
             });
             currentPage = 1;
+            selectedIds.clear();
+            updateDeleteButton();
             renderTable();
         });
+
+        function toggleSelect(id) {
+            if (selectedIds.has(id)) {
+                selectedIds.delete(id);
+            } else {
+                selectedIds.add(id);
+            }
+            // Update visual checkbox state
+            const checkbox = document.querySelector(`input[type="checkbox"][value="${id}"]`);
+            if (checkbox) {
+                checkbox.checked = selectedIds.has(id);
+            }
+            updateDeleteButton();
+        }
+
+        function toggleSelectAll(checkbox) {
+            const pageData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+            if (checkbox.checked) {
+                pageData.forEach(item => selectedIds.add(item.id));
+            } else {
+                pageData.forEach(item => selectedIds.delete(item.id));
+            }
+            // Update visual checkbox state untuk semua row di halaman ini
+            pageData.forEach(item => {
+                const checkbox = document.querySelector(`input[type="checkbox"][value="${item.id}"]`);
+                if (checkbox) {
+                    checkbox.checked = selectedIds.has(item.id);
+                }
+            });
+            updateDeleteButton();
+        }
+
+        function updateDeleteButton() {
+            const container = document.getElementById('deleteSelectedContainer');
+            const count = selectedIds.size;
+            if (count > 0) {
+                container.classList.remove('hidden');
+                document.getElementById('selectedCount').textContent = `${count} item terpilih`;
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        async function deleteSelectedData() {
+            if (selectedIds.size === 0) {
+                showAlertModal('Pilih minimal 1 item untuk dihapus', 'warning', 'Perhatian');
+                return;
+            }
+
+            const confirmed = await showConfirmModal(`Apakah Anda yakin ingin menghapus ${selectedIds.size} item?`, 'Hapus Data');
+            if (!confirmed) return;
+
+            try {
+                const ids = Array.from(selectedIds);
+                const response = await fetch('/api/absensi/delete-multiple', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlertModal(`${selectedIds.size} data berhasil dihapus`, 'success', 'Berhasil');
+                    selectedIds.clear();
+                    updateDeleteButton();
+                    loadData();
+                } else {
+                    showAlertModal('Gagal menghapus data: ' + result.message, 'error', 'Gagal');
+                }
+            } catch (error) {
+                showAlertModal('Terjadi kesalahan saat menghapus data', 'error', 'Error');
+                console.error(error);
+            }
+        }
 
         async function exportToExcel() {
             try {
@@ -277,12 +621,12 @@
                 a.click();
                 document.body.removeChild(a);
             } catch (error) {
-                alert('Gagal export ke Excel');
+                showAlertModal('Gagal export ke Excel', 'error', 'Export Error');
             }
         }
 
         async function deleteData(id, rowNumber) {
-            const confirmed = confirm(`Apakah Anda yakin ingin menghapus data nomor ${rowNumber}?`);
+            const confirmed = await showConfirmModal(`Apakah Anda yakin ingin menghapus data nomor ${rowNumber}?`, 'Hapus Data');
             if (!confirmed) return;
 
             try {
@@ -293,13 +637,13 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('Data berhasil dihapus');
+                    showAlertModal('Data berhasil dihapus', 'success', 'Berhasil');
                     loadData(); // Reload data
                 } else {
-                    alert('Gagal menghapus data: ' + result.message);
+                    showAlertModal('Gagal menghapus data: ' + result.message, 'error', 'Gagal');
                 }
             } catch (error) {
-                alert('Terjadi kesalahan saat menghapus data');
+                showAlertModal('Terjadi kesalahan saat menghapus data', 'error', 'Error');
                 console.error(error);
             }
         }

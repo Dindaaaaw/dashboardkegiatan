@@ -27,6 +27,28 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         }
 
+        /* ===== LOGO ===== */
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            flex: 1;
+        }
+        .logo-container img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .back-button-spacer {
+            width: 180px;
+        }
+
         /* ===== HEADINGS ===== */
         h1 {
             text-align: center;
@@ -171,15 +193,109 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .modal-icon {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .modal-icon.success { color: #10b981; }
+        .modal-icon.error { color: #ef4444; }
+        .modal-icon.warning { color: #f59e0b; }
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e3a8a;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .modal-message {
+            font-size: 15px;
+            color: #64748b;
+            text-align: center;
+            margin-bottom: 25px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .modal-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .modal-btn-primary {
+            background: #1e40af;
+            color: white;
+        }
+        .modal-btn-primary:hover {
+            background: #1e3a8a;
+        }
+        .modal-btn-secondary {
+            background: #e2e8f0;
+            color: #64748b;
+        }
+        .modal-btn-secondary:hover {
+            background: #cbd5e1;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div style="margin-bottom: 20px;">
-        <button onclick="window.location.href='dashboard.html'" style="width: auto; padding: 10px 20px; background: #64748b; font-size: 14px;">
-            ← Kembali ke Dashboard
-        </button>
+    <div class="header-top">
+        <div>
+            <button onclick="window.location.href='dashboard.html'" style="width: auto; padding: 10px 20px; background: #64748b; font-size: 14px;">
+                ← Kembali ke Dashboard
+            </button>
+        </div>
+        <div class="logo-container">
+            <img src="logo.png" alt="Logo BPKP">
+        </div>
+        <div class="back-button-spacer"></div>
     </div>
     <h1>Job Activity Dashboard</h1>
     <div class="timestamp" id="timestamp"></div>
@@ -257,7 +373,61 @@
     <button onclick="kirim()">Kirim Data</button>
 </div>
 
+<!-- Modal Alert -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+        <div class="modal-icon" id="modalIcon"></div>
+        <div class="modal-title" id="modalTitle">Notifikasi</div>
+        <div class="modal-message" id="modalMessage"></div>
+        <div class="modal-buttons">
+            <button class="modal-btn modal-btn-primary" onclick="closeModal()">OK</button>
+        </div>
+    </div>
+</div>
+
 <script>
+    // ===== MODAL ALERT =====
+    function showModal(message, type = 'info', title = 'Notifikasi') {
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalIcon = document.getElementById('modalIcon');
+
+        modalTitle.textContent = title;
+        modalMessage.textContent = message;
+        
+        // Set icon based on type
+        switch(type) {
+            case 'success':
+                modalIcon.textContent = '✓';
+                modalIcon.className = 'modal-icon success';
+                break;
+            case 'error':
+                modalIcon.textContent = '✕';
+                modalIcon.className = 'modal-icon error';
+                break;
+            case 'warning':
+                modalIcon.textContent = '!';
+                modalIcon.className = 'modal-icon warning';
+                break;
+            default:
+                modalIcon.textContent = 'ⓘ';
+                modalIcon.className = 'modal-icon';
+        }
+        
+        modalOverlay.classList.add('active');
+    }
+
+    function closeModal() {
+        const modalOverlay = document.getElementById('modalOverlay');
+        modalOverlay.classList.remove('active');
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('modalOverlay')?.addEventListener('click', (e) => {
+        if (e.target.id === 'modalOverlay') closeModal();
+    });
+
     // ===== LOAD EMPLOYEE NAMES =====
     async function loadEmployeeNames() {
         try {
@@ -335,7 +505,7 @@
     async function kirim() {
         // Cek apakah sedang dalam proses submit
         if (isSubmitting) {
-            alert("Data sedang dikirim, mohon tunggu...");
+            showModal('Data sedang dikirim, mohon tunggu...', 'warning', 'Mohon Tunggu');
             return;
         }
         
@@ -379,7 +549,7 @@
         }
 
         if (!nama || selectedAreas.length === 0 || selectedJenis.length === 0 || !rentangTerpilih || !desc || !foto || !consentChk || !consentChk.checked) {
-            alert("Semua field harus diisi termasuk memilih Nama Pegawai, Area, Jenis Pekerjaan, rentang waktu, foto, dan persetujuan!");
+            showModal('Semua field harus diisi termasuk memilih Nama Pegawai, Area, Jenis Pekerjaan, rentang waktu, foto, dan persetujuan!', 'error', 'Validasi Data');
             return;
         }
 
@@ -411,18 +581,18 @@
             const result = await response.json();
 
             if (result.success) {
-                alert("Data berhasil disimpan!\nNama: " + nama + "\nJenis: " + selectedJenis.join(', ') + "\nRentang: " + rentangTerpilih.value);
-                location.reload(); // Refresh halaman setelah sukses
+                showModal('Data berhasil disimpan!\nNama: ' + nama + '\nJenis: ' + selectedJenis.join(', ') + '\nRentang: ' + rentangTerpilih.value, 'success', 'Sukses');
+                // Reload halaman setelah user klik OK
+                document.querySelector('.modal-btn-primary').onclick = () => {
+                    location.reload();
+                };
             } else {
-                alert("Gagal: " + result.message);
+                showModal('Gagal: ' + result.message, 'error', 'Gagal Menyimpan');
                 // Reset UI jika gagal
                 resetSubmitButton();
             }
         } catch (error) {
-            alert("Terjadi kesalahan koneksi ke server.");
-            console.error(error);
-            // Reset UI jika error
-            resetSubmitButton();
+            showModal('Terjadi kesalahan koneksi ke server.', 'error', 'Error Koneksi');
         }
         
         // Fungsi untuk reset button submit
