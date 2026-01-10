@@ -330,7 +330,15 @@
         });
     }
     // ===== KIRIM DATA =====
+    let isSubmitting = false; // Flag untuk mencegah double submit
+    
     async function kirim() {
+        // Cek apakah sedang dalam proses submit
+        if (isSubmitting) {
+            alert("Data sedang dikirim, mohon tunggu...");
+            return;
+        }
+        
         const nama = document.getElementById("nama").value.trim();
         const namaSelect = document.getElementById("nama");
         const namaError = document.getElementById("namaError");
@@ -385,6 +393,15 @@
         formData.append("foto", foto);
         formData.append("consent", consentChk.checked ? 'true' : 'false');
 
+        // Set flag dan update UI
+        isSubmitting = true;
+        const submitBtn = document.querySelector('button[onclick="kirim()"]');
+        const originalBtnText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Mengirim data...';
+        submitBtn.style.background = '#64748b';
+        submitBtn.style.cursor = 'not-allowed';
+
         try {
             const response = await fetch("/submit-absensi", {
                 method: "POST",
@@ -398,10 +415,23 @@
                 location.reload(); // Refresh halaman setelah sukses
             } else {
                 alert("Gagal: " + result.message);
+                // Reset UI jika gagal
+                resetSubmitButton();
             }
         } catch (error) {
             alert("Terjadi kesalahan koneksi ke server.");
             console.error(error);
+            // Reset UI jika error
+            resetSubmitButton();
+        }
+        
+        // Fungsi untuk reset button submit
+        function resetSubmitButton() {
+            isSubmitting = false;
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
+            submitBtn.style.background = '#1e40af';
+            submitBtn.style.cursor = 'pointer';
         }
     }
 </script>
