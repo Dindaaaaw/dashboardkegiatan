@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const session = require('express-session');
 const multer = require('multer');
 const path = require('path');
 const xlsx = require('xlsx');
@@ -24,7 +25,35 @@ const employeeNames = [
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('.')); 
+app.use(express.static('.'));
+
+// Session configuration
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'dashboard-kegiatan-secret-key-2024',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production'
+    }
+}));
+
+// Auth Middleware
+const requireAuth = (req, res, next) => {
+    if (req.session && req.session.isAuthenticated) {
+        return next();
+    }
+    res.redirect('/login');
+};
+
+// Check if already logged in
+const redirectIfAuthenticated = (req, res, next) => {
+    if (req.session && req.session.isAuthenticated) {
+        return res.redirect('/dashboard');
+    }
+    next();
+}; 
 
 // Setup multer
 const upload = multer({ 
@@ -43,9 +72,41 @@ const upload = multer({
 });
 
 // Route View
+app.get('/login', redirectIfAuthenticated, (req, res) => { res.sendFile(path.join(__dirname, 'login.html')); });
 app.get('/absen', (req, res) => { res.sendFile(path.join(__dirname, 'ddekk.html')); });
-app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'dashboard.html')); });
-app.get('/dashboard', (req, res) => { res.sendFile(path.join(__dirname, 'dashboard.html')); });
+app.get('/', requireAuth, (req, res) => { res.sendFile(path.join(__dirname, 'dashboard.html')); });
+app.get('/dashboard', requireAuth, (req, res) => { res.sendFile(path.join(__dirname, 'dashboard.html')); });
+
+// API Login
+app.post('/api/login', (req, res) => {
+    const { username, password } = req.body;
+    
+    if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
+        req.session.isAuthenticated = true;
+        req.session.username = username;
+        return res.json({ success: true, message: 'Login berhasil' });
+    }
+    
+    res.status(401).json({ success: false, message: 'Username atau password salah' });
+});
+
+// API Logout
+app.post('/api/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: 'Gagal logout' });
+        }
+        res.json({ success: true, message: 'Logout berhasil' });
+    });
+});
+
+// API Check Auth Status
+app.get('/api/auth-status', (req, res) => {
+    if (req.session && req.session.isAuthenticated) {
+        return res.json({ success: true, isAuthenticated: true, username: req.session.username });
+    }
+    res.json({ success: false, isAuthenticated: false });
+});
 
 // API Get Employee Names
 app.get('/api/employees', (req, res) => {

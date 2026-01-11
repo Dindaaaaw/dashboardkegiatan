@@ -63,7 +63,12 @@ npm install
 ```
 MONGODB_URI = mongodb+srv://username:password@cluster.xxxxx.mongodb.net/absensi_db?retryWrites=true&w=majority
 BLOB_READ_WRITE_TOKEN = vercel_blob_rw_************
+ADMIN_USERNAME = admin
+ADMIN_PASSWORD = your-secure-password
+SESSION_SECRET = your-random-secret-key-here
 ```
+
+**Note:** Ganti `ADMIN_PASSWORD` dan `SESSION_SECRET` dengan nilai yang aman untuk production!
 
 ### 3. Push ke GitHub
 ```bash
@@ -95,6 +100,8 @@ Edit `.env`:
 MONGODB_URI="mongodb+srv://username:password@cluster.xxxxx.mongodb.net/absensi_db?retryWrites=true&w=majority"
 BLOB_READ_WRITE_TOKEN="vercel_blob_rw_************"
 NODE_ENV="development"
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="admin123"
 ```
 
 ### 3. Jalankan server
@@ -103,10 +110,58 @@ npm run dev
 ```
 
 ### 4. Akses aplikasi
-- Dashboard: http://localhost:3000
+- Login: http://localhost:3000/login (gunakan username & password dari .env)
+- Dashboard: http://localhost:3000 (memerlukan login)
 - Form Absen: http://localhost:3000/absen
 
+**Default Login:**
+- Username: admin
+- Password: admin123
+
+(Bisa diubah di file `.env`)
+
 ## API Endpoints
+
+### Login
+```
+POST /api/login
+Content-Type: application/json
+
+Body:
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+Response:
+{
+  "success": true,
+  "message": "Login berhasil"
+}
+```
+
+### Logout
+```
+POST /api/logout
+
+Response:
+{
+  "success": true,
+  "message": "Logout berhasil"
+}
+```
+
+### Check Auth Status
+```
+GET /api/auth-status
+
+Response:
+{
+  "success": true,
+  "isAuthenticated": true,
+  "username": "admin"
+}
+```
 
 ### Submit Absensi
 ```

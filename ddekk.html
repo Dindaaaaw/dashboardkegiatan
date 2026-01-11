@@ -31,13 +31,13 @@
         .header-top {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             margin-bottom: 20px;
+            position: relative;
         }
         .logo-container {
             display: flex;
             justify-content: center;
-            flex: 1;
         }
         .logo-container img {
             width: 80px;
@@ -45,8 +45,22 @@
             object-fit: contain;
             border-radius: 8px;
         }
-        .back-button-spacer {
-            width: 180px;
+        .back-button {
+            position: absolute;
+            left: 0;
+            display: none;
+        }
+        .back-button.show {
+            display: block;
+        }
+        .back-button button {
+            width: auto;
+            padding: 10px 20px;
+            background: #64748b;
+            font-size: 14px;
+        }
+        .back-button button:hover {
+            background: #475569;
         }
 
         /* ===== HEADINGS ===== */
@@ -287,15 +301,14 @@
 
 <div class="container">
     <div class="header-top">
-        <div>
-            <button onclick="window.location.href='dashboard.html'" style="width: auto; padding: 10px 20px; background: #64748b; font-size: 14px;">
-                ← Kembali ke Dashboard
+        <div class="back-button" id="backButton">
+            <button onclick="window.location.href='/'">
+                ←
             </button>
         </div>
         <div class="logo-container">
             <img src="logo.png" alt="Logo BPKP">
         </div>
-        <div class="back-button-spacer"></div>
     </div>
     <h1>Job Activity Dashboard</h1>
     <div class="timestamp" id="timestamp"></div>
@@ -449,6 +462,27 @@
 
     // Load employees on page load
     loadEmployeeNames();
+
+    // ===== CHECK AUTH STATUS AND SHOW BACK BUTTON =====
+    async function checkAuthStatus() {
+        try {
+            const response = await fetch('/api/auth-status');
+            const result = await response.json();
+            
+            if (result.success && result.isAuthenticated) {
+                // User sudah login, tampilkan tombol kembali
+                const backButton = document.getElementById('backButton');
+                if (backButton) {
+                    backButton.classList.add('show');
+                }
+            }
+        } catch (error) {
+            console.error('Error checking auth status:', error);
+        }
+    }
+
+    // Check auth status on page load
+    checkAuthStatus();
 
     // ===== TIMESTAMP OTOMATIS =====
     const timestampEl = document.getElementById("timestamp");
