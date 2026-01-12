@@ -26,28 +26,69 @@ const employeeNames = [
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files with logging
+app.use((req, res, next) => {
+    if (req.path.endsWith('.png') || req.path.endsWith('.jpg') || req.path.endsWith('.jpeg')) {
+        console.log('Image requested:', req.path);
+    }
+    next();
+});
 app.use(express.static('.'));
 
 // Session configuration
-app.use(session({
+const sessionConfig = {
     secret: process.env.SESSION_SECRET || 'dashboard-kegiatan-secret-key-2024',
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI,
-        collectionName: 'sessions',
-        ttl: 24 * 60 * 60 // 24 hours in seconds
-    }),
     cookie: { 
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+        secure: process.env.NODE_ENV === 'production', // true untuk HTTPS di Vercel
+        sameSite: 'lax', // 'lax' works untuk same-site requests
+        path: '/' // Pastikan cookie tersedia untuk semua paths
     }
-}));
+};
+
+// Only add MongoStore if MONGODB_URI is available
+if (process.env.MONGODB_URI) {
+    try {
+        const mongoStore = MongoStore.create({
+            mongoUrl: process.env.MONGODB_URI,
+            collectionName: 'sessions',
+            ttl: 24 * 60 * 60, // 24 hours in seconds
+            touchAfter: 3600, // Lazy session update (in seconds)
+            autoRemove: 'native' // Let MongoDB automatically remove expired sessions
+        });
+        
+        // Listen to store events
+        mongoStore.on('error', (error) => {
+            console.error('❌ MongoStore error:', error);
+        });
+        
+        mongoStore.on('create', (sessionId) => {
+            console.log('✅ Session created:', sessionId);
+        });
+        
+        sessionConfig.store = mongoStore;
+        console.log('✅ MongoDB session store configured successfully');
+    } catch (error) {
+        console.error('❌ Failed to configure MongoStore:', error);
+        console.warn('⚠️  Falling back to memory store');
+    }
+} else {
+    console.warn('⚠️  No MONGODB_URI found, using memory store (not recommended for production)');
+}
+
+app.use(session(sessionConfig));
 
 // Auth Middleware
 const requireAuth = (req, res, next) => {
+    console.log('=== AUTH CHECK ===');
+    console.log('Session ID:', req.sessionID);
+    console.log('Session:', req.session);
+    console.log('Is Authenticated:', req.session?.isAuthenticated);
+    
     if (req.session && req.session.isAuthenticated) {
         return next();
     }
@@ -84,17 +125,34 @@ app.get('/absen', (req, res) => { res.sendFile(path.join(__dirname, 'ddekk.html'
 app.get('/', requireAuth, (req, res) => { res.sendFile(path.join(__dirname, 'dashboard.html')); });
 app.get('/dashboard', requireAuth, (req, res) => { res.sendFile(path.join(__dirname, 'dashboard.html')); });
 
+// Serve logo explicitly
+app.get('/Logo.png', (req, res) => {
+    res.sendFile(path.join(__dirname, 'Logo.png'));
+});
+
 // API Login
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     
+    console.log('=== LOGIN ATTEMPT ===');
+    console.log('Username:', username);
+    console.log('Expected:', process.env.ADMIN_USERNAME);
+    
     if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
         req.session.isAuthenticated = true;
         req.session.username = username;
-        return res.json({ success: true, message: 'Login berhasil' });
+        
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.status(500).json({ success: false, message: 'Gagal menyimpan session' });
+            }
+            console.log('Session saved:', req.session);
+            return res.json({ success: true, message: 'Login berhasil' });
+        });
+    } else {
+        res.status(401).json({ success: false, message: 'Username atau password salah' });
     }
-    
-    res.status(401).json({ success: false, message: 'Username atau password salah' });
 });
 
 // API Logout
