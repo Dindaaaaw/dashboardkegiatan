@@ -11,6 +11,9 @@ const { getCollection } = require('./lib/mongodb');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy - PENTING untuk Vercel!
+app.set('trust proxy', 1);
+
 // List of Employee Names
 const employeeNames = [
     'Andri Apriansyah',
@@ -37,18 +40,29 @@ app.use((req, res, next) => {
 app.use(express.static('.'));
 
 // Session configuration
+const isProduction = process.env.NODE_ENV === 'production';
 const sessionConfig = {
+    name: 'dashboard.sid', // Custom name untuk avoid conflicts
     secret: process.env.SESSION_SECRET || 'dashboard-kegiatan-secret-key-2024',
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Reset cookie expiry on every request
+    proxy: true, // Trust proxy (important for Vercel)
     cookie: { 
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // true untuk HTTPS di Vercel
-        sameSite: 'lax', // 'lax' works untuk same-site requests
-        path: '/' // Pastikan cookie tersedia untuk semua paths
+        secure: isProduction, // true untuk HTTPS di Vercel
+        sameSite: isProduction ? 'none' : 'lax', // 'none' untuk Vercel HTTPS
+        path: '/',
+        domain: undefined // Let Express handle it
     }
 };
+
+console.log('Session config:', {
+    isProduction,
+    cookieSecure: sessionConfig.cookie.secure,
+    cookieSameSite: sessionConfig.cookie.sameSite
+});
 
 // Only add MongoStore if MONGODB_URI is available
 if (process.env.MONGODB_URI) {
@@ -136,21 +150,48 @@ app.post('/api/login', (req, res) => {
     
     console.log('=== LOGIN ATTEMPT ===');
     console.log('Username:', username);
-    console.log('Expected:', process.env.ADMIN_USERNAME);
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Session before login:', req.session);
+    console.log('SessionID before:', req.sessionID);
     
     if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
         req.session.isAuthenticated = true;
         req.session.username = username;
         
+        console.log('Session data set:', {
+            isAuthenticated: req.session.isAuthenticated,
+            username: req.session.username,
+            sessionID: req.sessionID
+        });
+        
         req.session.save((err) => {
             if (err) {
-                console.error('Session save error:', err);
-                return res.status(500).json({ success: false, message: 'Gagal menyimpan session' });
+                console.error('❌ Session save error:', err);
+                return res.status(500).json({ 
+                    success: false, 
+                    message: 'Gagal menyimpan session: ' + err.message 
+                });
             }
-            console.log('Session saved:', req.session);
-            return res.json({ success: true, message: 'Login berhasil' });
+            console.log('✅ Session saved successfully!');
+            console.log('Session after save:', req.session);
+            console.log('Cookie config:', {
+                secure: req.session.cookie.secure,
+                sameSite: req.session.cookie.sameSite,
+                httpOnly: req.session.cookie.httpOnly,
+                maxAge: req.session.cookie.maxAge
+            });
+            
+            // Set cookie headers explicitly untuk memastikan
+            res.cookie('dashboard.sid', req.sessionID, sessionConfig.cookie);
+            
+            return res.json({ 
+                success: true, 
+                message: 'Login berhasil',
+                sessionID: req.sessionID // Debug purposes
+            });
         });
     } else {
+        console.log('❌ Invalid credentials');
         res.status(401).json({ success: false, message: 'Username atau password salah' });
     }
 });
@@ -167,10 +208,26 @@ app.post('/api/logout', (req, res) => {
 
 // API Check Auth Status
 app.get('/api/auth-status', (req, res) => {
+    console.log('=== AUTH STATUS CHECK ===');
+    console.log('Session ID:', req.sessionID);
+    console.log('Session data:', req.session);
+    console.log('Is authenticated:', req.session?.isAuthenticated);
+    console.log('Cookies received:', req.headers.cookie);
+    
     if (req.session && req.session.isAuthenticated) {
-        return res.json({ success: true, isAuthenticated: true, username: req.session.username });
+        return res.json({ 
+            success: true, 
+            isAuthenticated: true, 
+            username: req.session.username,
+            sessionID: req.sessionID
+        });
     }
-    res.json({ success: false, isAuthenticated: false });
+    res.json({ 
+        success: false, 
+        isAuthenticated: false,
+        sessionID: req.sessionID,
+        hasSession: !!req.session
+    });
 });
 
 // API Get Employee Names
