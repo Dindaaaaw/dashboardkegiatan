@@ -8,46 +8,40 @@ Aplikasi absensi sederhana menggunakan Node.js, Express, MongoDB Atlas, dan Verc
 - **Storage**: Vercel Blob
 - **Deployment**: Vercel Serverless
 
-## Setup MongoDB Atlas
-
-### 1. Buat Akun MongoDB Atlas
-1. Daftar gratis di: https://www.mongodb.com/cloud/atlas/register
-2. Buat cluster gratis (pilih region terdekat)
-3. Tunggu cluster selesai dibuat (~3 menit)
-
-### 2. Setup Database User
-1. Di sidebar, klik **Database Access**
-2. Klik **Add New Database User**
-3. Pilih **Password** authentication
-4. Buat username dan password (simpan baik-baik!)
-5. Database Privileges: **Read and write to any database**
-6. Klik **Add User**
-
-### 3. Whitelist IP Address
-1. Di sidebar, klik **Network Access**
-2. Klik **Add IP Address**
-3. Pilih **Allow Access from Anywhere** (untuk development)
-4. Klik **Confirm**
-
-### 4. Get Connection String
-1. Di sidebar, klik **Database**
-2. Klik tombol **Connect** pada cluster Anda
-3. Pilih **Connect your application**
-4. Copy connection string (format: `mongodb+srv://...`)
-5. **Ganti `<password>` dengan password user Anda**
-
-## Setup Vercel Blob
+## Setup Storage di Vercel Dashboard
 
 ### 1. Buka Vercel Dashboard
 1. Buka: https://vercel.com/dashboard
 2. Pilih project Anda
 3. Klik tab **Storage**
 
-### 2. Create Blob Store
-1. Klik **Create Store** → Pilih **Blob**
-2. Beri nama (misal: `foto-absensi`)
-3. Klik **Create**
-4. Copy **BLOB_READ_WRITE_TOKEN**
+### 2. Create MongoDB Atlas (dari Vercel)
+1. Klik **Create Store** → Pilih **Postgres** atau scroll ke bawah
+2. Cari dan pilih **MongoDB Atlas** (Vercel akan redirect ke MongoDB)
+3. Login/daftar MongoDB Atlas melalui Vercel integration
+4. Vercel akan otomatis:
+   - Membuat cluster MongoDB
+   - Setup database user
+   - Whitelist IP Vercel
+   - Connect ke project Anda
+5. Connection string akan otomatis tersimpan di environment variables
+6. Copy **MONGODB_URI** dari tab Environment Variables
+
+**Alternatif (Manual Setup):**
+Jika MongoDB Atlas tidak muncul di Vercel Storage:
+1. Daftar gratis di: https://www.mongodb.com/cloud/atlas/register
+2. Buat cluster gratis (M0)
+3. Setup Database User di "Database Access"
+4. Whitelist IP: "Allow Access from Anywhere" di "Network Access"
+5. Get Connection String dari tombol "Connect"
+6. Paste ke environment variables Vercel
+
+### 3. Create Vercel Blob Store
+1. Masih di tab **Storage**, klik **Create Store** lagi
+2. Pilih **Blob**
+3. Beri nama (misal: `foto-absensi`)
+4. Klik **Create**
+5. Copy **BLOB_READ_WRITE_TOKEN** yang muncul
 
 ## Deploy ke Vercel
 
@@ -58,7 +52,7 @@ npm install
 
 ### 2. Setup Environment Variables di Vercel
 1. Di dashboard project Vercel, klik **Settings** → **Environment Variables**
-2. Tambahkan variable berikut:
+2. Tambahkan variable berikut (jika belum auto-generate):
 
 ```
 MONGODB_URI = mongodb+srv://username:password@cluster.xxxxx.mongodb.net/absensi_db?retryWrites=true&w=majority
@@ -102,7 +96,12 @@ BLOB_READ_WRITE_TOKEN="vercel_blob_rw_************"
 NODE_ENV="development"
 ADMIN_USERNAME="admin"
 ADMIN_PASSWORD="admin123"
+SESSION_SECRET="your-secret-key"
 ```
+
+**Cara mendapatkan credentials:**
+- **MONGODB_URI** dan **BLOB_READ_WRITE_TOKEN**: Copy dari Vercel Dashboard → Settings → Environment Variables
+- Atau setup manual MongoDB Atlas seperti di bagian "Setup Storage"
 
 ### 3. Jalankan server
 ```bash
@@ -254,6 +253,59 @@ Collection: `absensi`
 ### Error: "BLOB_READ_WRITE_TOKEN not found"
 - Pastikan environment variable sudah diset di Vercel
 - Restart deployment setelah tambah env variable
+
+## Cara Clone dan Setup dari Git
+
+### 1. Clone Repository
+```bash
+# Clone dari GitHub
+git clone <URL_REPOSITORY_ANDA>
+
+# Masuk ke folder project
+cd dashboardkegiatan
+```
+
+### 2. Install Dependencies
+```bash
+npm install
+```
+
+### 3. Setup Environment Variables
+```bash
+# Copy file .env.example menjadi .env
+copy .env.example .env
+```
+
+Edit file `.env` dengan credentials dari Vercel:
+- Buka Vercel Dashboard → Project → Settings → Environment Variables
+- Copy semua nilai dan paste ke `.env` lokal
+
+### 4. Jalankan Aplikasi
+```bash
+# Development mode (dengan auto-reload)
+npm run dev
+
+# Production mode
+npm start
+```
+
+### 5. Push Perubahan ke Git
+```bash
+# Cek status perubahan
+git status
+
+# Tambahkan file yang diubah
+git add .
+
+# Commit dengan pesan yang jelas
+git commit -m "Deskripsi perubahan"
+
+# Push ke GitHub
+git push origin main
+```
+
+**Auto Deploy:**
+Setelah push, Vercel akan otomatis detect, build, dan deploy aplikasi.
 
 ## License
 MIT
