@@ -226,8 +226,14 @@
                 <a href="/absen" class="btn btn-primary">
                     <span>➕</span> Input Kegiatan
                 </a>
+                <a href="/admin/pegawai" class="btn btn-primary">
+                    <span>👥</span> Kelola Pegawai
+                </a>
                 <button onclick="exportToExcel()" class="btn btn-success">
-                    <span>📥</span> Export Excel
+                    <span>📥</span> Export Semua
+                </button>
+                <button onclick="toggleExportPerNama()" class="btn btn-success">
+                    <span>📥</span> Export Per Nama
                 </button>
                 <button onclick="logout()" class="btn btn-danger">
                     <span>🚪</span> Logout
@@ -273,6 +279,23 @@
 
     <div class="modal" id="imageModal" onclick="closeModal()">
         <img src="" alt="Preview" id="modalImage">
+    </div>
+
+    <!-- Export Per Nama Modal -->
+    <div class="modal-overlay" id="exportModalOverlay">
+        <div class="modal-content">
+            <div class="modal-title" id="exportModalTitle">Export Data Per Nama</div>
+            <div style="margin: 20px 0;">
+                <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">Pilih Nama Pegawai:</label>
+                <select id="exportNamaSelect" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                    <option value="">-- Pilih Nama --</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-secondary" onclick="closeExportModal()">Batal</button>
+                <button class="modal-btn modal-btn-primary" onclick="exportPerNama()">Export</button>
+            </div>
+        </div>
     </div>
 
     <!-- Alert Modal -->
@@ -634,6 +657,73 @@
                 showAlertModal('Gagal export ke Excel', 'error', 'Export Error');
             }
         }
+
+        // ===== EXPORT PER NAMA =====
+        function toggleExportPerNama() {
+            const modal = document.getElementById('exportModalOverlay');
+            modal.classList.add('active');
+            
+            // Populate nama options dari data yang ada
+            const namaSelect = document.getElementById('exportNamaSelect');
+            const uniqueNamas = [...new Set(allData.map(item => item.nama))].sort();
+            
+            // Clear existing options kecuali yang pertama
+            namaSelect.innerHTML = '<option value="">-- Pilih Nama --</option>';
+            
+            uniqueNamas.forEach(nama => {
+                const option = document.createElement('option');
+                option.value = nama;
+                option.textContent = nama;
+                namaSelect.appendChild(option);
+            });
+        }
+
+        function closeExportModal() {
+            const modal = document.getElementById('exportModalOverlay');
+            modal.classList.remove('active');
+        }
+
+        async function exportPerNama() {
+            const namaSelect = document.getElementById('exportNamaSelect');
+            const selectedNama = namaSelect.value;
+            
+            if (!selectedNama) {
+                showAlertModal('Pilih nama pegawai terlebih dahulu', 'warning', 'Perhatian');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/export-excel-per-nama?nama=${encodeURIComponent(selectedNama)}`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    showAlertModal(error.message, 'error', 'Gagal Export');
+                    return;
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Absensi_${selectedNama}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                closeExportModal();
+                showAlertModal(`Data untuk ${selectedNama} berhasil di-export`, 'success', 'Berhasil Export');
+            } catch (error) {
+                showAlertModal('Gagal export ke Excel: ' + error.message, 'error', 'Export Error');
+                console.error(error);
+            }
+        }
+
+        // Close export modal ketika click di luar modal
+        document.getElementById('exportModalOverlay')?.addEventListener('click', (e) => {
+            if (e.target.id === 'exportModalOverlay') {
+                closeExportModal();
+            }
+        });
 
         async function deleteData(id, rowNumber) {
             const confirmed = await showConfirmModal(`Apakah Anda yakin ingin menghapus data nomor ${rowNumber}?`, 'Hapus Data');

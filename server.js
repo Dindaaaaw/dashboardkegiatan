@@ -14,8 +14,8 @@ const PORT = process.env.PORT || 3000;
 // Trust proxy - PENTING untuk Vercel!
 app.set('trust proxy', 1);
 
-// List of Employee Names
-const employeeNames = [
+// Default Employee Names (untuk inisialisasi database)
+const defaultEmployeeNames = [
     'Andri Apriansyah',
     'Uli Hariyono',
     'Muhammad Redo Firdaus',
@@ -25,6 +25,27 @@ const employeeNames = [
     'Sefian Hadi',
     'Sobirin'
 ];
+
+// Initialize employee names in database (jika kosong)
+async function initializeEmployeeNames() {
+    try {
+        const collection = await getCollection('pegawai');
+        const count = await collection.countDocuments({});
+        
+        if (count === 0) {
+            // Jika collection kosong, insert default names
+            const docs = defaultEmployeeNames.map(nama => ({
+                nama,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            }));
+            await collection.insertMany(docs);
+            console.log('✅ Employee names initialized from defaults');
+        }
+    } catch (error) {
+        console.error('Error initializing employee names:', error);
+    }
+}
 
 // Middleware
 app.use(express.json());
@@ -138,6 +159,7 @@ app.get('/login', redirectIfAuthenticated, (req, res) => { res.sendFile(path.joi
 app.get('/absen', (req, res) => { res.sendFile(path.join(__dirname, 'ddekk.html')); });
 app.get('/', requireAuth, (req, res) => { res.sendFile(path.join(__dirname, 'dashboard.html')); });
 app.get('/dashboard', requireAuth, (req, res) => { res.sendFile(path.join(__dirname, 'dashboard.html')); });
+app.get('/admin/pegawai', requireAuth, (req, res) => { res.sendFile(path.join(__dirname, 'admin-pegawai.html')); });
 
 // Serve logo explicitly
 app.get('/Logo.png', (req, res) => {
@@ -230,9 +252,85 @@ app.get('/api/auth-status', (req, res) => {
     });
 });
 
-// API Get Employee Names
-app.get('/api/employees', (req, res) => {
-    res.json({ success: true, data: employeeNames });
+// API Get Employee Names (dari database)
+app.get('/api/employees', async (req, res) => {
+    try {
+        const collection = await getCollection('pegawai');
+        const pegawai = await collection.find({}).sort({ nama: 1 }).toArray();
+        const names = pegawai.map(p => p.nama);
+        res.json({ success: true, data: names });
+    } catch (error) {
+        console.error('Error fetching employees:', error);
+        res.json({ success: true, data: defaultEmployeeNames }); // Fallback ke default
+    }
+});
+
+// API Get All Pegawai (dengan ID untuk manage)
+app.get('/api/pegawai', async (req, res) => {
+    try {
+        const collection = await getCollection('pegawai');
+        const pegawai = await collection.find({}).sort({ nama: 1 }).toArray();
+        res.json({ success: true, data: pegawai });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// API Add Pegawai
+app.post('/api/pegawai', async (req, res) => {
+    try {
+        const { nama } = req.body;
+        
+        if (!nama || !nama.trim()) {
+            return res.status(400).json({ success: false, message: 'Nama pegawai tidak boleh kosong' });
+        }
+
+        const collection = await getCollection('pegawai');
+        
+        // Check duplicate
+        const exists = await collection.findOne({ nama: nama.trim() });
+        if (exists) {
+            return res.status(400).json({ success: false, message: 'Nama pegawai sudah ada' });
+        }
+
+        const result = await collection.insertOne({
+            nama: nama.trim(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        res.json({ 
+            success: true, 
+            message: 'Pegawai berhasil ditambahkan',
+            data: { _id: result.insertedId, nama: nama.trim() }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// API Delete Pegawai
+app.delete('/api/pegawai/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        if (!id || id.length !== 24) {
+            return res.status(400).json({ success: false, message: 'ID tidak valid' });
+        }
+
+        const collection = await getCollection('pegawai');
+        const { ObjectId } = require('mongodb');
+        
+        const result = await collection.deleteOne({ _id: new ObjectId(id) });
+        
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Pegawai tidak ditemukan' });
+        }
+
+        res.json({ success: true, message: 'Pegawai berhasil dihapus' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 });
 
 // ==========================================
@@ -367,6 +465,50 @@ app.get('/api/export-excel', async (req, res) => {
     }
 });
 
+// API Export Excel Per Nama (FITUR BARU)
+app.get('/api/export-excel-per-nama', async (req, res) => {
+    try {
+        const { nama } = req.query;
+        
+        if (!nama) {
+            return res.status(400).json({ success: false, message: 'Nama harus diisi' });
+        }
+
+        const collection = await getCollection('absensi');
+        const absensiPerNama = await collection.find({ nama: nama }).sort({ timestamp: -1 }).toArray();
+        
+        if (absensiPerNama.length === 0) {
+            return res.status(404).json({ success: false, message: `Data untuk ${nama} tidak ditemukan` });
+        }
+
+        const excelData = absensiPerNama.map((item, index) => {
+            const date = new Date(item.timestamp);
+            return {
+                'No': index + 1,
+                'Tanggal': date.toLocaleDateString('id-ID'),
+                'Nama': item.nama,
+                'Area': item.area,
+                'Jenis Pekerjaan': item.jenis,
+                'Rentang Waktu': item.rentangWaktu,
+                'Deskripsi': item.deskripsi,
+                'Consent': item.consent ? 'Ya' : 'Tidak',
+                'URL Foto': item.foto
+            };
+        });
+
+        const workbook = xlsx.utils.book_new();
+        const worksheet = xlsx.utils.json_to_sheet(excelData);
+        xlsx.utils.book_append_sheet(workbook, worksheet, `Absensi ${nama}`);
+        const excelBuffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Disposition', `attachment; filename="Absensi_${nama}.xlsx"`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(excelBuffer);
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // API Delete Data (Single)
 app.delete('/api/absensi/:id', async (req, res) => {
     try {
@@ -438,6 +580,15 @@ app.get('/api/health', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
+// Initialize on startup
+(async () => {
+    try {
+        await initializeEmployeeNames();
+    } catch (error) {
+        console.error('Error during initialization:', error);
+    }
+})();
 
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => { console.log(`Running on http://localhost:${PORT}`); });
