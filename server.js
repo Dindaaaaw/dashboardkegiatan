@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
+const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const path = require('path');
 const xlsx = require('xlsx');
@@ -166,8 +167,28 @@ app.get('/Logo.png', (req, res) => {
     res.sendFile(path.join(__dirname, 'Logo.png'));
 });
 
-// API Login
-app.post('/api/login', (req, res) => {
+// Rate Limiter untuk login endpoint - Anti brute force
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 menit
+    max: 10, // Max 10 requests per 15 menit per IP
+    message: {
+        success: false,
+        message: 'Terlalu banyak percobaan login. Silakan coba lagi setelah 15 menit.'
+    },
+    standardHeaders: true, // Return rate limit info in RateLimit-* headers
+    legacyHeaders: false, // Disable X-RateLimit-* headers
+    handler: (req, res) => {
+        console.log('⚠️  Rate limit exceeded for IP:', req.ip);
+        res.status(429).json({
+            success: false,
+            message: 'Terlalu banyak percobaan login dari IP ini. Silakan coba lagi setelah 15 menit.',
+            retryAfter: 15 * 60 // seconds
+        });
+    }
+});
+
+// API Login dengan rate limiting
+app.post('/api/login', loginLimiter, (req, res) => {
     const { username, password } = req.body;
     
     console.log('=== LOGIN ATTEMPT ===');
